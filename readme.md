@@ -40,10 +40,6 @@ a server that watches a Google Drive folder and automatically publishes new phot
 
 > **note on triggering:** when deployed (Railway/Fly.io), publr registers a webhook with the Google Drive API so it fires instantly on upload — no polling needed. locally it falls back to polling every 5 minutes since Drive webhooks require a public HTTPS URL.
 
-## setup
-
-see [setup.md](setup.md) for step-by-step instructions.
-
 ## env vars
 
 copy `.env.example` to `.env` and fill in your keys:
