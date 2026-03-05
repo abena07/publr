@@ -4,6 +4,7 @@ import os
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseDownload
+from app.publishers.cloudinarry import upload_image
 from app.utils.state import load_processed, save_processed
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
@@ -34,7 +35,6 @@ async def check_drive():
     new_files = [f for f in files if f["id"] not in processed]
 
 
-
     for file in new_files:
         print(f"downloading {file['name']}")
         request = drive.files().get_media(fileId=file["id"])
@@ -45,6 +45,9 @@ async def check_drive():
             done = False
             while not done:
                 _, done = downloader.next_chunk()
+        
+        url = upload_image(path)
+        print(f"uploaded to cloudinary: {url}")
 
         processed.add(file["id"])
         save_processed(processed)
