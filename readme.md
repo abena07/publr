@@ -9,16 +9,17 @@ a server that watches a Google Drive folder and automatically publishes new phot
 │       Google Drive       │
 │      (your folder)       │
 └────────────┬─────────────┘
-             │ push notification on upload
-             │ (falls back to 5-min poll locally)
+             │ poll every 5 minutes
              ▼
 ┌──────────────────────────┐
 │      publr server        │
 │        (FastAPI)         │
 │                          │
 │  1. download photo       │
-│  2. upload to Cloudinary │
-│  3. post to Instagram    │
+│  2. resize + pad to      │
+│     correct aspect ratio │
+│  3. upload to Cloudinary │
+│  4. post to Instagram    │◄──── retry loop (failed.json)
 └────────┬─────────────────┘
          │
          ├─────────────────────────────────────┐
@@ -37,7 +38,37 @@ a server that watches a Google Drive folder and automatically publishes new phot
 └─────────────────────────────────────────────┘
 ```
 
-> **note on triggering:** when deployed (Railway/Fly.io), publr registers a webhook with the Google Drive API so it fires instantly on upload — no polling needed. locally it falls back to polling every 5 minutes since Drive webhooks require a public HTTPS URL.
+## multi-tenancy architecture
+
+each user connects their own Google Drive and Instagram. credentials are stored per-user in a database, and a separate scheduler job runs for each user.
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                       database                          │
+│                                                         │
+│  User ──┬── google_access_token / refresh_token        │
+│         ├── instagram_user_id / access_token           │
+│         ├── gdrive_folder_id                           │
+│         ├── ProcessedFile (gdrive_file_id, processed_at)│
+│         └── FailedFile (gdrive_file_id, retry_count)   │
+└─────────────────────────────────────────────────────────┘
+                          │
+              ┌───────────┴───────────┐
+              ▼                       ▼
+   ┌─────────────────┐     ┌─────────────────┐
+   │  per-user job   │     │  per-user job   │
+   │  (APScheduler)  │     │  (APScheduler)  │
+   │  watches their  │     │  watches their  │
+   │  Drive folder   │     │  Drive folder   │
+   └─────────────────┘     └─────────────────┘
+```
+
+**OAuth flows:**
+- Google Drive: OAuth 2.0 — users connect their own Drive via "Connect Google Drive"
+- Instagram: Meta OAuth 2.0 — users connect via "Connect Instagram" (requires a Facebook Page linked to an Instagram Business/Creator account)
+- Cloudinary: shared account, uploads isolated to `publr/{user_id}/` folder
+
+**dependency order:** db + User model → auth/JWT → (Drive OAuth, Instagram OAuth, per-user state) → per-user scheduler
 
 ## env vars
 
