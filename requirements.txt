@@ -26,6 +26,7 @@ idna==3.11
 jmespath==1.1.0
 oauthlib==3.3.1
 pillow==11.3.0
+pillow-heif==1.1.1
 proto-plus==1.27.1
 protobuf==6.33.5
 pyasn1==0.6.2

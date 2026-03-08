@@ -5,3 +5,4 @@ setup.md
 downloads/
 .env
 processed.json
+failed.json
