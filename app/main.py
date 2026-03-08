@@ -9,7 +9,6 @@ load_dotenv()
 app = FastAPI(title="publr")
 
 
-
 @app.on_event("startup")
 async def startup():
     start_watcher()
