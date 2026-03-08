@@ -24,9 +24,27 @@ def get_drive_client():
 
     return build("drive", "v3", credentials= creds)
 
+def pad_to_valid_ratio(img):
+    width, height = img.size
+    ratio = width / height
+    if ratio < 0.8:
+        # too tall — pad width to match 4:5
+        new_width = int(height * 0.8)
+        padded = Image.new("RGB", (new_width, height), (0, 0, 0))
+        padded.paste(img, ((new_width - width) // 2, 0))
+        return padded
+    elif ratio > 1.91:
+        # too wide — pad height to match 1.91:1
+        new_height = int(width / 1.91)
+        padded = Image.new("RGB", (width, new_height), (0, 0, 0))
+        padded.paste(img, (0, (new_height - height) // 2))
+        return padded
+    return img
+
 def resize_image(path):
     img = Image.open(path).convert("RGB")
     img.thumbnail((MAX_SIZE, MAX_SIZE), Image.LANCZOS)
+    img = pad_to_valid_ratio(img)
     img.save(path, "JPEG", quality=90)
     print(f"Resized image to max {MAX_SIZE}px : {path}")
     return path

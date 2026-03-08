@@ -1,25 +1,25 @@
 import json
 import os
 
-STATE_FILE = "processed.json"
+PROCESSED_FILE = "processed.json"
 FAILED_FILE = "failed.json"
 
-def load_processed() -> set:
-    if not os.path.exists(STATE_FILE):
+def load_processed():
+    if not os.path.exists(PROCESSED_FILE):
         return set()
-    with open(STATE_FILE) as f:
-        return set(json.load(f))
+    with open(PROCESSED_FILE) as file:
+        return set(json.load(file))
 
-def save_processed(processed: set):
-    with open(STATE_FILE, "w") as f:
-        json.dump(list(processed), f)
+def save_processed(processed):
+    with open(PROCESSED_FILE, "w") as file:
+        json.dump(list(processed), file)
 
-def load_failed() -> dict:
+def load_failed():
     if not os.path.exists(FAILED_FILE):
         return {}
-    with open(FAILED_FILE) as f:
-        return json.load(f)
+    with open(FAILED_FILE) as file:
+        return json.load(file)
 
-def save_failed(failed: dict):
-    with open(FAILED_FILE, "w") as f:
-        json.dump(failed, f)
+def save_failed(failed):
+    with open(FAILED_FILE, "w") as file:
+        json.dump(failed, file)

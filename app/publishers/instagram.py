@@ -37,7 +37,8 @@ async def publish_to_instagram(image_url: str, caption: str = "") -> bool:
                 break
             if status == "ERROR":
                 raise Exception(f"Instagram container failed: {s.json()}")
-            await asyncio.sleep(3)
+            if status != "FINISHED":
+                await asyncio.sleep(3)
         else:
             raise Exception("Instagram container timed out")
 
