@@ -92,7 +92,8 @@ async def check_drive():
 
         ig_success = False
         try:
-            ig_success = await publish_to_instagram(url)
+            caption = file.get("description", "")
+            ig_success = await publish_to_instagram(url, caption=caption)
             print(f"published to the gram successfully! : {url}")
         except Exception as e:
             print(f"publishing to instagram failed for {file['name']}: {e}")

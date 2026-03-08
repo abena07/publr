@@ -8,9 +8,6 @@ BASE = "https://graph.facebook.com/v21.0"
 async def publish_to_instagram(image_url: str, caption: str = "") -> bool:
     user_id = os.environ["INSTAGRAM_USER_ID"]
     token = os.environ["INSTAGRAM_ACCESS_TOKEN"]
-    print(repr(os.environ.get("INSTAGRAM_ACCESS_TOKEN")))
-
-    print(f"token preview: '{token[:10]}...{token[-5:]}' len={len(token)}")
 
     async with httpx.AsyncClient() as client:
         # Step 1 — create container
