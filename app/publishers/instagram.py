@@ -1,13 +1,12 @@
 import asyncio
-import os
 import httpx
 
 BASE = "https://graph.facebook.com/v21.0"
 
 
-async def publish_to_instagram(image_url: str, caption: str = "") -> bool:
-    user_id = os.environ["INSTAGRAM_USER_ID"]
-    token = os.environ["INSTAGRAM_ACCESS_TOKEN"]
+async def publish_to_instagram(image_url: str, user_id, token, caption: str = "") -> bool:
+    if not user_id or not token:
+        raise ValueError("No Instagram account connected. Connect your Instagram before publishing.")
 
     async with httpx.AsyncClient() as client:
         # Step 1 — create container
@@ -52,6 +51,7 @@ async def publish_to_instagram(image_url: str, caption: str = "") -> bool:
         )
         if p.is_error:
             raise Exception(f"Instagram publish error: {p.json()}")
-
+        
+        
     print(f"posted on the gram: {image_url}")
     return True
