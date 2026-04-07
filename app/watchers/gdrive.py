@@ -1,28 +1,71 @@
 import io
-import json
 import os
+import time
+import uuid
+from typing import Optional
+
+import httpx
 from PIL import Image
 from pillow_heif import register_heif_opener
 register_heif_opener()
-from google.oauth2 import service_account
+from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseDownload
+from sqlalchemy import select
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
+
+from app.db.base import AsyncSessionLocal
+from app.db.models import User
 from app.publishers.cloudinary import upload_image
 from app.publishers.instagram import publish_to_instagram
 from app.utils.state import load_processed, save_processed, load_failed, save_failed
-from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 
 DOWNLOAD_DIR = "downloads"
 os.makedirs(DOWNLOAD_DIR, exist_ok=True)
 MAX_SIZE = 1080
 
-def get_drive_client():
-    creds = service_account.Credentials.from_service_account_info(
-        json.loads(os.environ["GOOGLE_SERVICE_ACCOUNT_JSON"])
-    )
+GOOGLE_CLIENT_ID = os.environ["GOOGLE_CLIENT_ID"]
+GOOGLE_CLIENT_SECRET = os.environ["GOOGLE_CLIENT_SECRET"]
+TOKEN_URL = "https://oauth2.googleapis.com/token"
 
-    return build("drive", "v3", credentials= creds)
+
+def get_drive_client(credentials: dict):
+    creds = Credentials(token=credentials["access_token"])
+    return build("drive", "v3", credentials=creds)
+
+
+async def get_fresh_credentials(user_id: uuid.UUID) -> Optional[dict]:
+    """Returns fresh credentials for a user, refreshing the access token if expired."""
+    async with AsyncSessionLocal() as session:
+        user = await session.get(User, user_id)
+        if not user or not user.google_access_token or not user.gdrive_folder_id:
+            return None
+
+        if user.google_token_expires_at and time.time() > user.google_token_expires_at - 60:
+            if not user.google_refresh_token:
+                print(f"no refresh token for user {user_id}, skipping")
+                return None
+            async with httpx.AsyncClient() as client:
+                resp = await client.post(TOKEN_URL, data={
+                    "grant_type": "refresh_token",
+                    "refresh_token": user.google_refresh_token,
+                    "client_id": GOOGLE_CLIENT_ID,
+                    "client_secret": GOOGLE_CLIENT_SECRET,
+                })
+                data = resp.json()
+            if "error" in data:
+                print(f"token refresh failed for user {user_id}: {data}")
+                return None
+            user.google_access_token = data["access_token"]
+            user.google_token_expires_at = int(time.time()) + data.get("expires_in", 3600)
+            await session.commit()
+
+        return {
+            "access_token": user.google_access_token,
+            "folder_id": user.gdrive_folder_id,
+        }
+
 
 def pad_to_valid_ratio(img):
     width, height = img.size
@@ -68,10 +111,9 @@ async def retry_failed():
             print(f"retry failed for {url}: {e}")
 
 
-async def check_drive():
-    await retry_failed()
-    folder_id = os.environ["GDRIVE_FOLDER_ID"]
-    drive = get_drive_client()
+async def check_drive(credentials: dict):
+    folder_id = credentials["folder_id"]
+    drive = get_drive_client(credentials)
 
     results = drive.files().list(
         q=f"'{folder_id}' in parents and mimeType contains 'image/' and trashed =false",
@@ -84,7 +126,6 @@ async def check_drive():
 
     new_files = [f for f in files if f["id"] not in processed]
 
-
     for file in new_files:
         print(f"downloading {file['name']}")
         request = drive.files().get_media(fileId=file["id"])
@@ -95,7 +136,7 @@ async def check_drive():
             done = False
             while not done:
                 _, done = downloader.next_chunk()
-        
+
         try:
             resize_image(path)
         except Exception as e:
@@ -107,6 +148,7 @@ async def check_drive():
             print(f"uploaded to cloudinary: {url}")
         except Exception as e:
             print(f"cloudinary upload failed for {file['name']}: {e}")
+            continue
 
         ig_success = False
         try:
@@ -128,11 +170,29 @@ async def check_drive():
         if ig_success:
             processed.add(file["id"])
             save_processed(processed)
-            print(f"saved {file['name']} to {path}")
+            print(f"saved {file['name']} to processed")
+
+
+async def poll_all_users():
+    await retry_failed()
+    async with AsyncSessionLocal() as session:
+        result = await session.execute(
+            select(User).where(
+                User.google_access_token.isnot(None),
+                User.gdrive_folder_id.isnot(None),
+            )
+        )
+        users = result.scalars().all()
+
+    for user in users:
+        credentials = await get_fresh_credentials(user.id)
+        if credentials:
+            await check_drive(credentials)
 
 
 def start_watcher():
+    interval_minutes = int(os.environ.get("POLL_INTERVAL_MINUTES", 5))
     scheduler = AsyncIOScheduler()
-    scheduler.add_job(check_drive, "interval", seconds=10)
+    scheduler.add_job(poll_all_users, "interval", minutes=interval_minutes)
     scheduler.start()
-    print("driver watch started")
+    print(f"drive watcher started — polling every {interval_minutes}m")
