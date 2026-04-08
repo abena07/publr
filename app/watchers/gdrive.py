@@ -39,7 +39,13 @@ async def get_fresh_credentials(user_id: uuid.UUID) -> Optional[dict]:
     """Returns fresh credentials for a user, refreshing the access token if expired."""
     async with AsyncSessionLocal() as session:
         user = await session.get(User, user_id)
-        if not user or not user.google_access_token or not user.gdrive_folder_id:
+        if (
+            not user
+            or not user.google_access_token
+            or not user.gdrive_folder_id
+            or not user.instagram_user_id
+            or not user.instagram_access_token
+        ):
             return None
 
         if user.google_token_expires_at and time.time() > user.google_token_expires_at - 60:
@@ -64,6 +70,8 @@ async def get_fresh_credentials(user_id: uuid.UUID) -> Optional[dict]:
         return {
             "access_token": user.google_access_token,
             "folder_id": user.gdrive_folder_id,
+            "instagram_user_id": user.instagram_user_id,
+            "instagram_access_token": user.instagram_access_token,
         }
 
 
@@ -101,12 +109,9 @@ async def retry_failed():
     print(f"retrying {len(failed)} failed instagram publish(es)")
     for file_id, url in list(failed.items()):
         try:
-            await publish_to_instagram(url)
-            print(f"retry succeeded: {url}")
-            del failed[file_id]
-            save_failed(failed)
-            processed.add(file_id)
-            save_processed(processed)
+            # Legacy failed entries only store URL, not account context.
+            # Skip retry here; check_drive() handles fresh uploads with user context.
+            print(f"retry skipped (missing user/token context): {url}")
         except Exception as e:
             print(f"retry failed for {url}: {e}")
 
@@ -153,7 +158,12 @@ async def check_drive(credentials: dict):
         ig_success = False
         try:
             caption = file.get("description", "")
-            ig_success = await publish_to_instagram(url, caption=caption)
+            ig_success = await publish_to_instagram(
+                url,
+                user_id=credentials["instagram_user_id"],
+                token=credentials["instagram_access_token"],
+                caption=caption,
+            )
             print(f"published to the gram successfully! : {url}")
         except Exception as e:
             print(f"publishing to instagram failed for {file['name']}: {e}")
