@@ -5,31 +5,21 @@ import uuid
 from typing import Optional
 
 import httpx
-import time
-import uuid
-from typing import Optional
-
-import httpx
-from PIL import Image
-from pillow_heif import register_heif_opener
-register_heif_opener()
-from google.oauth2.credentials import Credentials
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseDownload
+from PIL import Image
+from pillow_heif import register_heif_opener
 from sqlalchemy import select
-from apscheduler.schedulers.asyncio import AsyncIOScheduler
-
-from app.db.base import AsyncSessionLocal
-from app.db.models import User
-from sqlalchemy import select
-from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 from app.db.base import AsyncSessionLocal
 from app.db.models import User
 from app.publishers.cloudinary import upload_image
 from app.publishers.instagram import publish_to_instagram
-from app.utils.state import load_processed, save_processed, load_failed, save_failed
+from app.utils.state import load_processed, save_processed, save_failed
+
+register_heif_opener()
 
 
 DOWNLOAD_DIR = "downloads"
@@ -79,6 +69,7 @@ async def get_fresh_credentials(user_id: uuid.UUID) -> Optional[dict]:
             await session.commit()
 
         return {
+            "user_id": user.id,
             "access_token": user.google_access_token,
             "folder_id": user.gdrive_folder_id,
             "instagram_user_id": user.instagram_user_id,
@@ -112,22 +103,9 @@ def resize_image(path):
     return path
 
 
-async def retry_failed():
-    failed = load_failed()
-    if not failed:
-        return
-    processed = load_processed()
-    print(f"retrying {len(failed)} failed instagram publish(es)")
-    for file_id, url in list(failed.items()):
-        try:
-            # Legacy failed entries only store URL, not account context.
-            # Skip retry here; check_drive() handles fresh uploads with user context.
-            print(f"retry skipped (missing user/token context): {url}")
-        except Exception as e:
-            print(f"retry failed for {url}: {e}")
 
-
-async def check_drive(credentials: dict):
+async def check_drive(credentials: dict, session):
+    user_id = credentials["user_id"]
     folder_id = credentials["folder_id"]
     drive = get_drive_client(credentials)
 
@@ -138,7 +116,7 @@ async def check_drive(credentials: dict):
 
     files = results.get("files", [])
     print(f"found {len(files)} image(s) in folder")
-    processed = load_processed()
+    processed = await load_processed(user_id, session)
 
     new_files = [f for f in files if f["id"] not in processed]
 
@@ -178,9 +156,7 @@ async def check_drive(credentials: dict):
             print(f"published to the gram successfully! : {url}")
         except Exception as e:
             print(f"publishing to instagram failed for {file['name']}: {e}")
-            failed = load_failed()
-            failed[file["id"]] = url
-            save_failed(failed)
+            await save_failed(user_id, file["id"], url, session)
 
         try:
             os.remove(path)
@@ -189,13 +165,11 @@ async def check_drive(credentials: dict):
             print(f"failed to deleted temp file: {path}-> {e}")
 
         if ig_success:
-            processed.add(file["id"])
-            save_processed(processed)
+            await save_processed(user_id, file["id"], session)
             print(f"saved {file['name']} to processed")
 
 
 async def poll_all_users():
-    await retry_failed()
     async with AsyncSessionLocal() as session:
         result = await session.execute(
             select(User).where(
@@ -208,7 +182,8 @@ async def poll_all_users():
     for user in users:
         credentials = await get_fresh_credentials(user.id)
         if credentials:
-            await check_drive(credentials)
+            async with AsyncSessionLocal() as session:
+                await check_drive(credentials, session)
 
 
 def start_watcher():
