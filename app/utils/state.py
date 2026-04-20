@@ -1,25 +1,25 @@
-import json
-import os
+import uuid
 
-PROCESSED_FILE = "processed.json"
-FAILED_FILE = "failed.json"
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession        
 
-def load_processed():
-    if not os.path.exists(PROCESSED_FILE):
-        return set()
-    with open(PROCESSED_FILE) as file:
-        return set(json.load(file))
+from app.db.models import FailedFile, ProcessedFile
+    
 
-def save_processed(processed):
-    with open(PROCESSED_FILE, "w") as file:
-        json.dump(list(processed), file)
+async def load_processed(user_id:uuid.UUID, session:AsyncSession):
+    result = await session.execute(select(ProcessedFile).where(ProcessedFile.user_id == user_id))               
+    return {row.gdrive_file_id for row in result.scalars().all()}
+                     
 
-def load_failed():
-    if not os.path.exists(FAILED_FILE):
-        return {}
-    with open(FAILED_FILE) as file:
-        return json.load(file)
+async def save_processed(user_id:uuid.UUID, file_id:str, session:AsyncSession):
+    session.add(ProcessedFile(user_id = user_id, gdrive_file_id=file_id))
+    await session.commit()
 
-def save_failed(failed):
-    with open(FAILED_FILE, "w") as file:
-        json.dump(failed, file)
+async def load_failed(user_id:uuid.UUID, session:AsyncSession):
+    result = await session.execute(select(FailedFile).where(FailedFile.user_id == user_id))
+    return{row.gdrive_file_id: row.cloudinary_url for row in result.scalars().all()}
+
+
+async def save_failed(user_id:uuid.UUID, file_id:str, cloudinary_url:str, session:AsyncSession):
+    session.add(FailedFile(user_id = user_id, gdrive_file_id = file_id, cloudinary_url = cloudinary_url))
+    await session.commit()
