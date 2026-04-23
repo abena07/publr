@@ -20,6 +20,7 @@ class User(Base):
     google_refresh_token : Mapped[Optional[str]] = mapped_column(default=None)
     google_token_expires_at: Mapped[Optional[int]] = mapped_column(default=None)
     gdrive_folder_id: Mapped[Optional[str]] = mapped_column(default=None)
+    gdrive_connected: Mapped[bool] = mapped_column(default=False)
 
 
 

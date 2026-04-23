@@ -5,7 +5,6 @@ import uuid
 from typing import Optional
 
 import httpx
-from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseDownload
@@ -13,6 +12,7 @@ from PIL import Image
 from pillow_heif import register_heif_opener
 from sqlalchemy import select
 
+from app.scheduler import scheduler
 from app.db.base import AsyncSessionLocal
 from app.db.models import User
 from app.publishers.cloudinary import upload_image
@@ -52,6 +52,9 @@ async def get_fresh_credentials(user_id: uuid.UUID) -> Optional[dict]:
         if user.google_token_expires_at and time.time() > user.google_token_expires_at - 60:
             if not user.google_refresh_token:
                 print(f"no refresh token for user {user_id}, skipping")
+                scheduler.pause_job(f"gdrive_watcher_{user_id}")
+                user.gdrive_connected = False
+                await session.commit()
                 return None
             async with httpx.AsyncClient() as client:
                 resp = await client.post(TOKEN_URL, data={
@@ -63,6 +66,9 @@ async def get_fresh_credentials(user_id: uuid.UUID) -> Optional[dict]:
                 data = resp.json()
             if "error" in data:
                 print(f"token refresh failed for user {user_id}: {data}")
+                scheduler.pause_job(f"gdrive_watcher_{user_id}")
+                user.gdrive_connected = False
+                await session.commit()
                 return None
             user.google_access_token = data["access_token"]
             user.google_token_expires_at = int(time.time()) + data.get("expires_in", 3600)
@@ -186,9 +192,27 @@ async def poll_all_users():
                 await check_drive(credentials, session)
 
 
-def start_watcher():
-    interval_minutes = int(os.environ.get("POLL_INTERVAL_MINUTES", 5))
-    scheduler = AsyncIOScheduler()
-    scheduler.add_job(poll_all_users, "interval", minutes=interval_minutes)
-    scheduler.start()
-    print(f"drive watcher started — polling every {interval_minutes}m")
+async def poll_user(user_id):
+    # start a session 
+    # select the one user
+    # check the ussers drive
+    async with AsyncSessionLocal() as session:
+        result = await session.execute(
+            select(User).where(
+                User.id == user_id
+            )
+        )
+        user = result.scalar_one_or_none()
+
+        if not user:
+            return
+  
+        credentials = await get_fresh_credentials(user.id)
+        if credentials:
+            await check_drive(credentials, session)
+
+
+def start_watcher(user_id):
+    interval_seconds = int(os.environ.get("WATCHER_INTERVAL_SECONDS", 60))
+    scheduler.add_job(poll_user, "interval", seconds=interval_seconds, id=f"gdrive_watcher_{user_id}", args=[user_id])
+    print(f"watcher started for user {user_id} — polling every {interval_seconds}s")

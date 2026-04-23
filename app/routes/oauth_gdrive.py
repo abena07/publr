@@ -6,10 +6,12 @@ from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import RedirectResponse
 from pydantic import BaseModel
 
+from app.scheduler import scheduler
 from app.auth.jwt import get_current_user
 from app.auth.oauth_state import create_state, consume_state
 from app.db.base import AsyncSessionLocal
 from app.db.models import User
+from app.watchers.gdrive import start_watcher
 
 router = APIRouter()
 
@@ -81,3 +83,27 @@ async def set_gdrive_folder(body: GDriveSettings, current_user: User = Depends(g
         user.gdrive_folder_id = body.folder_id
         await session.commit()
     return {"gdrive_folder_id": body.folder_id}
+
+
+@router.post("/settings/gdrive/connect")
+async def connect_drive(current_user: User = Depends(get_current_user)):
+    async with AsyncSessionLocal() as session:
+        user = await session.get(User, current_user.id)
+        user.gdrive_connected = True
+        await session.commit()
+    start_watcher(current_user.id)
+    return {"status": "connected"}
+
+
+@router.delete("/settings/gdrive/disconnect")
+async def disconnect_drive(current_user: User = Depends(get_current_user)):
+    async with AsyncSessionLocal() as session:
+        user = await session.get(User, current_user.id)
+        user.gdrive_connected = False
+        user.google_access_token = None
+        user.google_refresh_token = None
+        user.google_token_expires_at = None
+        user.gdrive_folder_id = None
+        await session.commit()
+    scheduler.remove_job(f"gdrive_watcher_{current_user.id}")
+    return {"status": "disconnected"}
