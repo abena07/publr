@@ -20,9 +20,6 @@ from app.publishers.instagram import publish_to_instagram
 from app.utils.state import load_processed, save_processed, save_failed
 
 register_heif_opener()
-from app.utils.state import load_processed, save_processed, save_failed
-
-register_heif_opener()
 
 
 DOWNLOAD_DIR = "downloads"
@@ -79,7 +76,6 @@ async def get_fresh_credentials(user_id: uuid.UUID) -> Optional[dict]:
 
         return {
             "user_id": user.id,
-            "user_id": user.id,
             "access_token": user.google_access_token,
             "folder_id": user.gdrive_folder_id,
             "instagram_user_id": user.instagram_user_id,
@@ -104,6 +100,7 @@ def pad_to_valid_ratio(img):
         return padded
     return img
 
+
 def resize_image(path):
     img = Image.open(path).convert("RGB")
     img.thumbnail((MAX_SIZE, MAX_SIZE), Image.LANCZOS)
@@ -112,10 +109,6 @@ def resize_image(path):
     print(f"Resized image to max {MAX_SIZE}px : {path}")
     return path
 
-
-
-async def check_drive(credentials: dict, session):
-    user_id = credentials["user_id"]
 
 async def check_drive(credentials: dict, session):
     user_id = credentials["user_id"]
@@ -129,7 +122,6 @@ async def check_drive(credentials: dict, session):
 
     files = results.get("files", [])
     print(f"found {len(files)} image(s) in folder")
-    processed = await load_processed(user_id, session)
     processed = await load_processed(user_id, session)
 
     new_files = [f for f in files if f["id"] not in processed]
@@ -171,7 +163,6 @@ async def check_drive(credentials: dict, session):
         except Exception as e:
             print(f"publishing to instagram failed for {file['name']}: {e}")
             await save_failed(user_id, file["id"], url, session)
-            await save_failed(user_id, file["id"], url, session)
 
         try:
             os.remove(path)
@@ -180,7 +171,6 @@ async def check_drive(credentials: dict, session):
             print(f"failed to deleted temp file: {path}-> {e}")
 
         if ig_success:
-            await save_processed(user_id, file["id"], session)
             await save_processed(user_id, file["id"], session)
             print(f"saved {file['name']} to processed")
 
@@ -203,20 +193,15 @@ async def poll_all_users():
 
 
 async def poll_user(user_id):
-    # start a session 
-    # select the one user
-    # check the ussers drive
     async with AsyncSessionLocal() as session:
         result = await session.execute(
-            select(User).where(
-                User.id == user_id
-            )
+            select(User).where(User.id == user_id)
         )
         user = result.scalar_one_or_none()
 
         if not user:
             return
-  
+
         credentials = await get_fresh_credentials(user.id)
         if credentials:
             await check_drive(credentials, session)
