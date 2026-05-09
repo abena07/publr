@@ -1,33 +1,43 @@
 import secrets
 import uuid
-from typing import Dict, Optional, Set
+from typing import Optional
 
-# Login flow — state is just a CSRF nonce, not tied to a user yet
-_login_nonces: Set[str] = set()
-
-# Connected account flow (e.g. Google Drive) — state maps to an existing user
-_state_store: Dict[str, uuid.UUID] = {}
+from app.db.base import AsyncSessionLocal
+from app.db.models import OAuthState
 
 
-def create_login_nonce() -> str:
-    nonce = secrets.token_urlsafe(32)
-    _login_nonces.add(nonce)
-    return nonce
-
-
-def consume_login_nonce(nonce: str) -> bool:
-    if nonce in _login_nonces:
-        _login_nonces.discard(nonce)
-        return True
-    return False
-
-
-def create_state(user_id: uuid.UUID) -> str:
+async def create_login_nonce() -> str:
     token = secrets.token_urlsafe(32)
-    _state_store[token] = user_id
+    async with AsyncSessionLocal() as session:
+        session.add(OAuthState(token=token))
+        await session.commit()
     return token
 
 
-def consume_state(state: str) -> Optional[uuid.UUID]:
-    """Returns the user_id and removes the state entry. Returns None if not found."""
-    return _state_store.pop(state, None)
+async def consume_login_nonce(nonce: str) -> bool:
+    async with AsyncSessionLocal() as session:
+        row = await session.get(OAuthState, nonce)
+        if row is None or row.user_id is not None:
+            return False
+        await session.delete(row)
+        await session.commit()
+    return True
+
+
+async def create_state(user_id: uuid.UUID) -> str:
+    token = secrets.token_urlsafe(32)
+    async with AsyncSessionLocal() as session:
+        session.add(OAuthState(token=token, user_id=user_id))
+        await session.commit()
+    return token
+
+
+async def consume_state(state: str) -> Optional[uuid.UUID]:
+    async with AsyncSessionLocal() as session:
+        row = await session.get(OAuthState, state)
+        if row is None:
+            return None
+        user_id = row.user_id
+        await session.delete(row)
+        await session.commit()
+    return user_id

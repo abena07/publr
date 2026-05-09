@@ -26,7 +26,7 @@ SCOPES = "https://www.googleapis.com/auth/drive.readonly"
 
 @router.get("/auth/gdrive")
 async def gdrive_auth(current_user: User = Depends(get_current_user)):
-    state = create_state(current_user.id)
+    state = await create_state(current_user.id)
     url = (
         f"{AUTH_URL}"
         f"?client_id={GOOGLE_CLIENT_ID}"
@@ -42,7 +42,7 @@ async def gdrive_auth(current_user: User = Depends(get_current_user)):
 
 @router.get("/auth/gdrive/callback")
 async def gdrive_callback(code: str, state: str):
-    user_id = consume_state(state)
+    user_id = await consume_state(state)
     if user_id is None:
         raise HTTPException(status_code=400, detail="Invalid or expired state")
 

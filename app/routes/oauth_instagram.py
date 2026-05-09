@@ -20,7 +20,7 @@ GRAPH_URL = "https://graph.facebook.com/v19.0"
 
 @router.get("/auth/instagram")
 async def instagram_auth():
-    state = create_login_nonce()
+    state = await create_login_nonce()
     print(f"DEBUG /auth/instagram redirect to Meta, redirect_uri={META_REDIRECT_URI}, state={state}")
     url = (
         "https://www.facebook.com/v19.0/dialog/oauth"
@@ -40,7 +40,7 @@ async def instagram_callback(code: str = None, error: str = None, state: str = N
     print(f"DEBUG callback: code={code}, error={error}, state={state}")
     if error:
         raise HTTPException(status_code=400, detail="Instagram login was cancelled or denied")
-    if not state or not consume_login_nonce(state):
+    if not state or not await consume_login_nonce(state):
         raise HTTPException(status_code=400, detail="Invalid or expired state")
 
     async with httpx.AsyncClient() as client:
