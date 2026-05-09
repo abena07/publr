@@ -43,9 +43,14 @@ export default function Landing() {
           <p className="max-w-xl shrink-0 text-lg font-normal leading-[1.5] text-[#555a6a]">
             Drop a photo into your Drive folder. publr handles the rest.
           </p>
-          <Link to="/login" className={`${buttonPrimaryClassName} self-center`}>
-            get started
-          </Link>
+          <div className="flex flex-col items-center gap-3">
+            <Link to="/login" className={`${buttonPrimaryClassName} self-center`}>
+              get started
+            </Link>
+            <Link to="/setup" className="text-sm text-[#8e91a0] hover:text-[#1c1c1e] transition-colors">
+              what do i need to get started?
+            </Link>
+          </div>
         </section>
 
         {/* How it works */}
@@ -70,9 +75,9 @@ export default function Landing() {
       {/* footer-region */}
       <footer className="flex w-full shrink-0 flex-wrap items-center justify-between gap-6 border-[#e0e2e8] border-t text-sm font-normal leading-[1.5] text-[#a5a8b5] px-12 py-10">
         <span>© 2026 publr</span>
-        <a href="/privacy" className="shrink-0 py-1 transition-colors hover:text-[#ffffff]">
+        <Link to="/privacy" className="shrink-0 py-1 transition-colors hover:text-[#1c1c1e]">
           privacy
-        </a>
+        </Link>
       </footer>
     </div>
   );
