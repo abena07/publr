@@ -5,12 +5,14 @@ const LAST_UPDATED = "April 18, 2026";
 
 export default function Privacy() {
   return (
-    <div className="mx-auto flex min-h-dvh w-full max-w-[1280px] flex-col px-8 lowercase">
-      <nav className="flex min-h-16 items-center justify-between border-b border-[#e0e2e8]">
-        <Link to="/" className="text-base font-medium text-[#1c1c1e]">publr</Link>
+    <div className="mx-auto flex min-h-dvh w-full min-w-0 max-w-[1280px] flex-1 flex-col self-center px-8 lowercase">
+      <nav className="flex min-h-16 w-full shrink-0 items-center justify-between border-b border-[#e0e2e8]">
+        <Link to="/" className="text-base font-medium text-[#1c1c1e]">
+          publr
+        </Link>
       </nav>
 
-      <main className="flex flex-1 flex-col gap-8 py-16 max-w-xl text-sm text-[#1c1c1e] leading-relaxed">
+      <main className="mx-auto flex w-full min-w-0 max-w-xl flex-1 flex-col gap-8 py-16 text-sm leading-relaxed text-[#1c1c1e]">
         <div className="flex flex-col gap-2">
           <h1 className="text-3xl font-medium">privacy policy</h1>
           <p className="text-[#8e91a0]">last updated: {LAST_UPDATED}</p>
@@ -79,7 +81,7 @@ export default function Privacy() {
         </section>
       </main>
 
-      <footer className="flex w-full shrink-0 items-center justify-between border-t border-[#e0e2e8] px-8 py-10 text-sm text-[#a5a8b5]">
+      <footer className="flex w-full shrink-0 border-t border-[#e0e2e8] px-8 py-10 text-sm text-[#a5a8b5] sm:px-12 sm:py-10">
         <span>© 2026 publr</span>
       </footer>
     </div>
