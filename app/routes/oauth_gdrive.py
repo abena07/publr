@@ -1,5 +1,6 @@
 import os
 import time
+import uuid
 
 import httpx
 from fastapi import APIRouter, Depends, HTTPException
@@ -7,7 +8,7 @@ from fastapi.responses import RedirectResponse
 from pydantic import BaseModel
 
 from app.scheduler import scheduler
-from app.auth.jwt import get_current_user
+from app.auth.jwt import get_current_user, decode_token
 from app.auth.oauth_state import create_state, consume_state
 from app.db.base import AsyncSessionLocal
 from app.db.models import User
@@ -22,6 +23,28 @@ GOOGLE_REDIRECT_URI = os.environ["GOOGLE_REDIRECT_URI"]
 AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth"
 TOKEN_URL = "https://oauth2.googleapis.com/token"
 SCOPES = "https://www.googleapis.com/auth/drive.readonly"
+
+
+@router.get("/auth/gdrive/start")
+async def gdrive_auth_start(token: str):
+    """Browser-friendly GDrive OAuth — accepts JWT as query param for redirect flows."""
+    user_id_str = decode_token(token)
+    async with AsyncSessionLocal() as session:
+        user = await session.get(User, uuid.UUID(user_id_str))
+        if user is None:
+            raise HTTPException(status_code=404, detail="User not found")
+    state = await create_state(uuid.UUID(user_id_str))
+    url = (
+        f"{AUTH_URL}"
+        f"?client_id={GOOGLE_CLIENT_ID}"
+        f"&redirect_uri={GOOGLE_REDIRECT_URI}"
+        f"&response_type=code"
+        f"&scope={SCOPES}"
+        f"&access_type=offline"
+        f"&prompt=consent"
+        f"&state={state}"
+    )
+    return RedirectResponse(url)
 
 
 @router.get("/auth/gdrive")
@@ -69,7 +92,8 @@ async def gdrive_callback(code: str, state: str):
         user.google_token_expires_at = int(time.time()) + data.get("expires_in", 3600)
         await session.commit()
 
-    return {"status": "connected"}
+    frontend_url = os.environ.get("FRONTEND_URL", "http://localhost:5173")
+    return RedirectResponse(f"{frontend_url}/dashboard?gdrive=connected")
 
 
 class GDriveSettings(BaseModel):
