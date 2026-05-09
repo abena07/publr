@@ -12,7 +12,7 @@ BETA_SPOTS = 25
 
 class WaitlistRequest(BaseModel):
     google_email: str
-    facebook_name: str
+    facebook_name: str  # stores profile URL
 
 
 @router.post("/api/waitlist")

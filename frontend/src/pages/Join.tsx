@@ -50,7 +50,7 @@ export default function Join() {
             <h1 className="text-3xl font-medium text-[#1c1c1e]">you're on the list.</h1>
             <p className="text-sm text-[#555a6a] leading-relaxed">
               {inBeta
-                ? `you're number ${position} — i'll add you as a tester and reach out to get you started.`
+                ? `you're number ${position}. i'll add you as a tester and reach out to get you started.`
                 : `you're number ${position} on the list. the first 25 spots are taken but i'll reach out if one opens up.`}
             </p>
           </div>
@@ -62,7 +62,9 @@ export default function Join() {
               )}
               <h1 className="text-3xl font-medium text-[#1c1c1e]">join the beta.</h1>
               <p className="text-sm text-[#555a6a] leading-relaxed">
-                i'll add you as a tester and send you the link to get started.
+                drop your google email and your facebook profile link. it looks like facebook.com/yourname. you'll also need a{" "}
+                <a href="https://developers.facebook.com" target="_blank" rel="noopener noreferrer" className="underline text-[#1c1c1e]">facebook developer account</a>
+                , register free.
               </p>
             </div>
 
@@ -78,7 +80,7 @@ export default function Join() {
               <input
                 type="text"
                 required
-                placeholder="facebook name"
+                placeholder="facebook.com/yourname"
                 value={facebook}
                 onChange={(e) => setFacebook(e.target.value)}
                 className="rounded-[10px] border border-[#e0e2e8] px-4 py-3 text-sm text-[#1c1c1e] outline-none focus:border-[#1c1c1e] transition-colors"
