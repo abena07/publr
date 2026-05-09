@@ -2,7 +2,7 @@ import os
 
 import httpx
 from fastapi import APIRouter, HTTPException
-from fastapi.responses import RedirectResponse
+from fastapi.responses import RedirectResponse, JSONResponse
 from sqlalchemy import select
 
 from app.auth.jwt import create_access_token
@@ -146,4 +146,5 @@ async def instagram_callback(code: str = None, error: str = None, state: str = N
         await session.refresh(user)
 
     token = create_access_token(user.id)
-    return {"access_token": token, "token_type": "bearer"}
+    frontend_url = os.environ.get("FRONTEND_URL", "http://localhost:5173")
+    return RedirectResponse(f"{frontend_url}/auth/callback?token={token}")
