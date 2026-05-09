@@ -62,9 +62,9 @@ export default function Join() {
               )}
               <h1 className="text-3xl font-medium text-[#1c1c1e]">join the beta.</h1>
               <p className="text-sm text-[#555a6a] leading-relaxed">
-                drop your google email and your facebook profile link. it looks like facebook.com/yourname. you'll also need a{" "}
+                drop your google email and your facebook profile link. the profile link looks like facebook.com/yourname. you'll also need a{" "}
                 <a href="https://developers.facebook.com" target="_blank" rel="noopener noreferrer" className="underline text-[#1c1c1e]">facebook developer account</a>
-                , register free.
+                
               </p>
             </div>
 
