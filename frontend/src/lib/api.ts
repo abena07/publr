@@ -50,4 +50,12 @@ export const api = {
     }),
 
   cloudinaryRemove: () => request<{ status: string }>("/settings/cloudinary", { method: "DELETE" }),
+
+  waitlistCount: () => request<{ count: number; remaining: number }>("/api/waitlist/count"),
+
+  waitlistJoin: (google_email: string, facebook_name: string) =>
+    request<{ position: number; in_beta: boolean }>("/api/waitlist", {
+      method: "POST",
+      body: JSON.stringify({ google_email, facebook_name }),
+    }),
 };

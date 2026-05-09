@@ -15,6 +15,7 @@ from app.routes.oauth_gdrive import router as gdrive_router
 from app.routes.legal import router as legal_router
 from app.routes.cloudinary_settings import router as cloudinary_router
 from app.routes.me import router as me_router
+from app.routes.waitlist import router as waitlist_router
 from app.db.base import engine, Base, AsyncSessionLocal
 from app.db.models import User
 
@@ -41,9 +42,11 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="publr", lifespan=lifespan)
 
+_origins = {os.getenv("FRONTEND_URL", "http://localhost:5173"), "http://localhost:5173"}
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[os.getenv("FRONTEND_URL", "http://localhost:5173")],
+    allow_origins=list(_origins),
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -59,3 +62,4 @@ app.include_router(gdrive_router)
 app.include_router(legal_router)
 app.include_router(cloudinary_router)
 app.include_router(me_router)
+app.include_router(waitlist_router)

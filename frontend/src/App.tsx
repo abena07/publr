@@ -6,6 +6,7 @@ import Dashboard from "./pages/Dashboard";
 import Settings from "./pages/Settings";
 import Setup from "./pages/Setup";
 import Privacy from "./pages/Privacy";
+import Join from "./pages/Join";
 
 export default function App() {
   return (
@@ -18,6 +19,7 @@ export default function App() {
         <Route path="/settings" element={<Settings />} />
         <Route path="/setup" element={<Setup />} />
         <Route path="/privacy" element={<Privacy />} />
+        <Route path="/join" element={<Join />} />
       </Routes>
     </BrowserRouter>
   );

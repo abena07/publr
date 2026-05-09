@@ -21,7 +21,6 @@ GRAPH_URL = "https://graph.facebook.com/v19.0"
 @router.get("/auth/instagram")
 async def instagram_auth():
     state = await create_login_nonce()
-    print(f"DEBUG /auth/instagram redirect to Meta, redirect_uri={META_REDIRECT_URI}, state={state}")
     url = (
         "https://www.facebook.com/v19.0/dialog/oauth"
         f"?client_id={META_APP_ID}"

@@ -47,9 +47,15 @@ export default function Landing() {
             <Link to="/login" className={`${buttonPrimaryClassName} self-center`}>
               get started
             </Link>
-            <Link to="/setup" className="text-sm text-[#8e91a0] hover:text-[#1c1c1e] transition-colors">
-              what do i need to get started?
-            </Link>
+            <div className="flex items-center gap-4 text-sm text-[#8e91a0]">
+              <Link to="/join" className="hover:text-[#1c1c1e] transition-colors">
+                join the beta
+              </Link>
+              <span>·</span>
+              <Link to="/setup" className="hover:text-[#1c1c1e] transition-colors">
+                what do i need?
+              </Link>
+            </div>
           </div>
         </section>
 
