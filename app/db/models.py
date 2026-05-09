@@ -3,6 +3,7 @@ from datetime import datetime
 from typing import Optional
 
 from sqlalchemy import ForeignKey, func
+from sqlalchemy import ForeignKey, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base
@@ -20,6 +21,7 @@ class User(Base):
     google_refresh_token : Mapped[Optional[str]] = mapped_column(default=None)
     google_token_expires_at: Mapped[Optional[int]] = mapped_column(default=None)
     gdrive_folder_id: Mapped[Optional[str]] = mapped_column(default=None)
+    gdrive_connected: Mapped[bool] = mapped_column(default=False)
 
 
 
