@@ -91,7 +91,8 @@ async def connect_drive(current_user: User = Depends(get_current_user)):
         user = await session.get(User, current_user.id)
         user.gdrive_connected = True
         await session.commit()
-    start_watcher(current_user.id)
+    if not scheduler.get_job(f"gdrive_watcher_{current_user.id}"):
+        start_watcher(current_user.id)
     return {"status": "connected"}
 
 
