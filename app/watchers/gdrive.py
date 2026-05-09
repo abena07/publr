@@ -18,6 +18,7 @@ from app.db.models import User
 from app.publishers.cloudinary import upload_image
 from app.publishers.instagram import publish_to_instagram
 from app.utils.state import load_processed, save_processed, save_failed
+from app.utils.encryption import decrypt
 
 register_heif_opener()
 
@@ -74,12 +75,21 @@ async def get_fresh_credentials(user_id: uuid.UUID) -> Optional[dict]:
             user.google_token_expires_at = int(time.time()) + data.get("expires_in", 3600)
             await session.commit()
 
+        cloudinary_creds = None
+        if user.cloudinary_cloud_name and user.cloudinary_api_key and user.cloudinary_api_secret:
+            cloudinary_creds = {
+                "cloud_name": decrypt(user.cloudinary_cloud_name),
+                "api_key": decrypt(user.cloudinary_api_key),
+                "api_secret": decrypt(user.cloudinary_api_secret),
+            }
+
         return {
             "user_id": user.id,
             "access_token": user.google_access_token,
             "folder_id": user.gdrive_folder_id,
             "instagram_user_id": user.instagram_user_id,
             "instagram_access_token": user.instagram_access_token,
+            "cloudinary_creds": cloudinary_creds,
         }
 
 
@@ -144,7 +154,7 @@ async def check_drive(credentials: dict, session):
             continue
 
         try:
-            url = upload_image(path)
+            url = upload_image(path, user_id=user_id, credentials=credentials.get("cloudinary_creds"))
             print(f"uploaded to cloudinary: {url}")
         except Exception as e:
             print(f"cloudinary upload failed for {file['name']}: {e}")
