@@ -10,12 +10,12 @@ const steps = [
   {
     n: "02",
     title: "Pick your Drive folder",
-    desc: "Choose one Google Drive folder—use it as the inbox for any image you want to go live.",
+    desc: "Choose one Google Drive folder & use it as the inbox for any image you want to go live.",
   },
   {
     n: "03",
     title: "Drop a file & you’re done",
-    desc: "Upload a picture to that folder. publr syncs it to your site and posts it to Instagram, with resize and routing handled for you.",
+    desc: "Upload a picture to that folder. publr syncs it to your site and posts it to Instagram.",
   },
 ];
 
