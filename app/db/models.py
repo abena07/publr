@@ -25,6 +25,14 @@ class User(Base):
 
 
 
+class OAuthState(Base):
+    __tablename__ = "oauth_states"
+
+    token: Mapped[str] = mapped_column(primary_key=True)
+    user_id: Mapped[Optional[uuid.UUID]] = mapped_column(ForeignKey("users.id"), default=None)
+    created_at: Mapped[datetime] = mapped_column(server_default=func.now())
+
+
 class ProcessedFile(Base):
     __tablename__ = "processed_files"
 
