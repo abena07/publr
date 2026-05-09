@@ -22,6 +22,9 @@ class User(Base):
     google_token_expires_at: Mapped[Optional[int]] = mapped_column(default=None)
     gdrive_folder_id: Mapped[Optional[str]] = mapped_column(default=None)
     gdrive_connected: Mapped[bool] = mapped_column(default=False)
+    cloudinary_cloud_name: Mapped[Optional[str]] = mapped_column(default=None)
+    cloudinary_api_key: Mapped[Optional[str]] = mapped_column(default=None)
+    cloudinary_api_secret: Mapped[Optional[str]] = mapped_column(default=None)
 
 
 

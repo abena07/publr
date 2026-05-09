@@ -6,20 +6,37 @@ from fastapi import APIRouter, Depends
 
 from app.auth.jwt import get_current_user
 from app.db.models import User
-
-cloudinary.config(
-    cloud_name=os.environ["CLOUDINARY_CLOUD_NAME"],
-    api_key=os.environ["CLOUDINARY_API_KEY"],
-    api_secret=os.environ["CLOUDINARY_API_SECRET"],
-)
+from app.utils.encryption import decrypt
 
 router = APIRouter()
 
+
 @router.get("/api/photos")
 async def get_photos(current_user: User = Depends(get_current_user)):
+    has_custom = bool(
+        current_user.cloudinary_cloud_name
+        and current_user.cloudinary_api_key
+        and current_user.cloudinary_api_secret
+    )
+
+    if has_custom:
+        cloudinary.config(
+            cloud_name=decrypt(current_user.cloudinary_cloud_name),
+            api_key=decrypt(current_user.cloudinary_api_key),
+            api_secret=decrypt(current_user.cloudinary_api_secret),
+        )
+        prefix = "publr"
+    else:
+        cloudinary.config(
+            cloud_name=os.environ["CLOUDINARY_CLOUD_NAME"],
+            api_key=os.environ["CLOUDINARY_API_KEY"],
+            api_secret=os.environ["CLOUDINARY_API_SECRET"],
+        )
+        prefix = f"publr/{current_user.id}"
+
     result = cloudinary.api.resources(
         type="upload",
-        prefix=f"publr/{current_user.id}/",
+        prefix=prefix,
         max_results=100,
     )
     urls = [r["secure_url"] for r in result["resources"]]
