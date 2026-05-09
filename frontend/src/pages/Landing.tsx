@@ -81,9 +81,14 @@ export default function Landing() {
       {/* footer-region */}
       <footer className="flex w-full shrink-0 flex-wrap items-center justify-between gap-6 border-[#e0e2e8] border-t text-sm font-normal leading-[1.5] text-[#a5a8b5] px-12 py-10">
         <span>© 2026 publr</span>
-        <Link to="/privacy" className="shrink-0 py-1 transition-colors hover:text-[#1c1c1e]">
-          privacy
-        </Link>
+        <div className="flex gap-6">
+          <Link to="/docs" className="shrink-0 py-1 transition-colors hover:text-[#1c1c1e]">
+            docs
+          </Link>
+          <Link to="/privacy" className="shrink-0 py-1 transition-colors hover:text-[#1c1c1e]">
+            privacy
+          </Link>
+        </div>
       </footer>
     </div>
   );

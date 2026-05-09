@@ -1,29 +1,30 @@
 import os
+import uuid
 
 import cloudinary
 import cloudinary.api
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy import select
 
 from app.auth.jwt import get_current_user
+from app.db.base import AsyncSessionLocal
 from app.db.models import User
 from app.utils.encryption import decrypt
 
 router = APIRouter()
 
 
-@router.get("/api/photos")
-async def get_photos(current_user: User = Depends(get_current_user)):
+def _fetch_photos(user: User) -> list[str]:
     has_custom = bool(
-        current_user.cloudinary_cloud_name
-        and current_user.cloudinary_api_key
-        and current_user.cloudinary_api_secret
+        user.cloudinary_cloud_name
+        and user.cloudinary_api_key
+        and user.cloudinary_api_secret
     )
-
     if has_custom:
         cloudinary.config(
-            cloud_name=decrypt(current_user.cloudinary_cloud_name),
-            api_key=decrypt(current_user.cloudinary_api_key),
-            api_secret=decrypt(current_user.cloudinary_api_secret),
+            cloud_name=decrypt(user.cloudinary_cloud_name),
+            api_key=decrypt(user.cloudinary_api_key),
+            api_secret=decrypt(user.cloudinary_api_secret),
         )
         prefix = "publr"
     else:
@@ -32,12 +33,22 @@ async def get_photos(current_user: User = Depends(get_current_user)):
             api_key=os.environ["CLOUDINARY_API_KEY"],
             api_secret=os.environ["CLOUDINARY_API_SECRET"],
         )
-        prefix = f"publr/{current_user.id}"
+        prefix = f"publr/{user.id}"
 
-    result = cloudinary.api.resources(
-        type="upload",
-        prefix=prefix,
-        max_results=100,
-    )
-    urls = [r["secure_url"] for r in result["resources"]]
-    return {"photos": urls}
+    result = cloudinary.api.resources(type="upload", prefix=prefix, max_results=100)
+    return [r["secure_url"] for r in result["resources"]]
+
+
+@router.get("/api/photos/{user_id}")
+async def get_photos_public(user_id: uuid.UUID):
+    async with AsyncSessionLocal() as session:
+        result = await session.execute(select(User).where(User.id == user_id))
+        user = result.scalar_one_or_none()
+    if not user:
+        raise HTTPException(status_code=404, detail="user not found")
+    return {"photos": _fetch_photos(user)}
+
+
+@router.get("/api/photos")
+async def get_photos(current_user: User = Depends(get_current_user)):
+    return {"photos": _fetch_photos(current_user)}

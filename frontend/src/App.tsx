@@ -7,6 +7,7 @@ import Settings from "./pages/Settings";
 import Setup from "./pages/Setup";
 import Privacy from "./pages/Privacy";
 import Join from "./pages/Join";
+import Docs from "./pages/Docs";
 
 export default function App() {
   return (
@@ -20,6 +21,7 @@ export default function App() {
         <Route path="/setup" element={<Setup />} />
         <Route path="/privacy" element={<Privacy />} />
         <Route path="/join" element={<Join />} />
+        <Route path="/docs" element={<Docs />} />
       </Routes>
     </BrowserRouter>
   );

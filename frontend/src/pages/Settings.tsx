@@ -5,6 +5,7 @@ import { getToken, clearToken } from "../lib/auth";
 import { buttonPrimaryClassName } from "../lib/ui";
 
 type Me = {
+  id: string;
   gdrive_connected: boolean;
   gdrive_folder_id: string | null;
   has_cloudinary: boolean;
@@ -22,6 +23,7 @@ export default function Settings() {
   const [cloudForm, setCloudForm] = useState({ cloud_name: "", api_key: "", api_secret: "" });
   const [saving, setSaving] = useState(false);
   const [disconnecting, setDisconnecting] = useState(false);
+  const [copied, setCopied] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
@@ -91,6 +93,21 @@ export default function Settings() {
 
       <main className="flex flex-1 flex-col gap-12 py-12 max-w-lg">
         <h1 className="text-3xl font-medium text-[#1c1c1e]">settings</h1>
+
+        {/* User ID */}
+        <section className="flex flex-col gap-4">
+          <p className="text-xs font-semibold uppercase tracking-widest text-[#8e91a0]">your user id</p>
+          <p className="text-sm text-[#555a6a]">use this to fetch your photos from the <Link to="/docs" className="underline text-[#1c1c1e]">api</Link>.</p>
+          <div className="flex items-center gap-3">
+            <span className="font-mono text-xs text-[#1c1c1e] truncate">{me.id}</span>
+            <button
+              onClick={() => { navigator.clipboard.writeText(me.id); setCopied(true); setTimeout(() => setCopied(false), 2000); }}
+              className="shrink-0 text-xs text-[#8e91a0] hover:text-[#1c1c1e] transition-colors"
+            >
+              {copied ? "copied" : "copy"}
+            </button>
+          </div>
+        </section>
 
         {/* Google Drive */}
         <section className="flex flex-col gap-4">
