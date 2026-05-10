@@ -5,7 +5,6 @@ import { buttonPrimaryClassName } from "../lib/ui";
 
 export default function Join() {
   const [email, setEmail] = useState("");
-  const [facebook, setFacebook] = useState("");
   const [remaining, setRemaining] = useState<number | null>(null);
   const [position, setPosition] = useState<number | null>(null);
   const [inBeta, setInBeta] = useState(false);
@@ -21,7 +20,7 @@ export default function Join() {
     setSubmitting(true);
     setError(null);
     try {
-      const r = await api.waitlistJoin(email.trim(), facebook.trim());
+      const r = await api.waitlistJoin(email.trim());
       setPosition(r.position);
       setInBeta(r.in_beta);
       setRemaining((prev) => (prev !== null ? Math.max(0, prev - 1) : null));
@@ -62,9 +61,7 @@ export default function Join() {
               )}
               <h1 className="text-3xl font-medium text-[#1c1c1e]">join the beta.</h1>
               <p className="text-sm text-[#555a6a] leading-relaxed">
-                drop your google email and your facebook profile link. the profile link looks like facebook.com/yourname. you'll also need a{" "}
-                <a href="https://developers.facebook.com" target="_blank" rel="noopener noreferrer" className="underline text-[#1c1c1e]">facebook developer account</a>.
-                {" "} takes a few minutes to setup.
+                drop your email and i'll be in touch to get you set up.
               </p>
             </div>
 
@@ -77,18 +74,10 @@ export default function Join() {
                 onChange={(e) => setEmail(e.target.value)}
                 className="rounded-[10px] border border-[#e0e2e8] px-4 py-3 text-sm text-[#1c1c1e] outline-none focus:border-[#1c1c1e] transition-colors"
               />
-              <input
-                type="text"
-                required
-                placeholder="facebook.com/yourname"
-                value={facebook}
-                onChange={(e) => setFacebook(e.target.value)}
-                className="rounded-[10px] border border-[#e0e2e8] px-4 py-3 text-sm text-[#1c1c1e] outline-none focus:border-[#1c1c1e] transition-colors"
-              />
               {error && <p className="text-xs text-red-500">{error}</p>}
               <button
                 type="submit"
-                disabled={submitting || !email || !facebook}
+                disabled={submitting || !email}
                 className={buttonPrimaryClassName}
               >
                 {submitting ? "joining…" : "join"}

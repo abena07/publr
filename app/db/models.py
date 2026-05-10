@@ -60,7 +60,7 @@ class WaitlistEntry(Base):
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
     google_email: Mapped[str] = mapped_column()
-    facebook_name: Mapped[str] = mapped_column()
+    facebook_name: Mapped[Optional[str]] = mapped_column(nullable=True)
     created_at: Mapped[datetime] = mapped_column(server_default=func.now())
 
 

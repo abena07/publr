@@ -12,7 +12,6 @@ BETA_SPOTS = 25
 
 class WaitlistRequest(BaseModel):
     google_email: str
-    facebook_name: str  # stores profile URL
 
 
 @router.post("/api/waitlist")
@@ -21,7 +20,7 @@ async def join_waitlist(body: WaitlistRequest):
         count_result = await session.execute(select(func.count()).select_from(WaitlistEntry))
         count = count_result.scalar()
 
-        entry = WaitlistEntry(google_email=body.google_email, facebook_name=body.facebook_name)
+        entry = WaitlistEntry(google_email=body.google_email)
         session.add(entry)
         await session.commit()
 

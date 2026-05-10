@@ -53,9 +53,9 @@ export const api = {
 
   waitlistCount: () => request<{ count: number; remaining: number }>("/api/waitlist/count"),
 
-  waitlistJoin: (google_email: string, facebook_name: string) =>
+  waitlistJoin: (google_email: string) =>
     request<{ position: number; in_beta: boolean }>("/api/waitlist", {
       method: "POST",
-      body: JSON.stringify({ google_email, facebook_name }),
+      body: JSON.stringify({ google_email }),
     }),
 };
