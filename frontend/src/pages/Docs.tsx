@@ -81,7 +81,7 @@ export default function Docs() {
         <div className="flex flex-col gap-3">
           <h1 className="text-3xl font-medium text-[#1c1c1e]">show your photos anywhere</h1>
           <p className="text-sm text-[#555a6a] leading-relaxed">
-            once publr is running, use the api to pull your photos into any site or framework. no auth needed — just your user id.
+            once publr is running, use the api to pull your photos into any site or framework. no auth needed, just your user id.
           </p>
         </div>
 
@@ -92,7 +92,7 @@ export default function Docs() {
             GET {BASE_URL}/api/photos/YOUR_USER_ID
           </div>
           <p className="text-sm text-[#555a6a]">
-            returns <span className="font-mono text-xs text-[#1c1c1e]">{"{ photos: string[] }"}</span> — an array of image urls from your watched drive folder.
+            returns <span className="font-mono text-xs text-[#1c1c1e]">{"{ photos: string[] }"}</span>, an array of image urls from your watched drive folder.
           </p>
         </section>
 
@@ -100,7 +100,7 @@ export default function Docs() {
         <section className="flex flex-col gap-4">
           <p className="text-xs font-semibold uppercase tracking-widest text-[#8e91a0]">your user id</p>
           <p className="text-sm text-[#555a6a] leading-relaxed">
-            find it in your publr <Link to="/dashboard" className="underline text-[#1c1c1e]">dashboard</Link> — it's shown in the url or you can copy it from settings. replace <span className="font-mono text-xs text-[#1c1c1e]">YOUR_USER_ID</span> in the snippets below with your actual id.
+            find it in your publr <Link to="/settings" className="underline text-[#1c1c1e]">settings</Link>. replace <span className="font-mono text-xs text-[#1c1c1e]">YOUR_USER_ID</span> in the snippets below with your actual id.
           </p>
         </section>
 
