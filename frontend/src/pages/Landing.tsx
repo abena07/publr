@@ -88,6 +88,9 @@ export default function Landing() {
           <Link to="/privacy" className="shrink-0 py-1 transition-colors hover:text-[#1c1c1e]">
             privacy
           </Link>
+          <a href="https://github.com/abena07/publr" target="_blank" rel="noreferrer" className="shrink-0 py-1 transition-colors hover:text-[#1c1c1e]">
+            github
+          </a>
         </div>
       </footer>
     </div>
