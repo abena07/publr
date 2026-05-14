@@ -17,7 +17,7 @@ from app.db.base import AsyncSessionLocal
 from app.db.models import User
 from app.publishers.cloudinary import upload_image
 from app.publishers.instagram import publish_to_instagram
-from app.utils.state import load_processed, save_processed, save_failed
+from app.utils.state import load_processed, save_processed, load_failed, save_failed, delete_failed
 from app.utils.encryption import decrypt
 
 register_heif_opener()
@@ -125,6 +125,20 @@ async def check_drive(credentials: dict, session):
     folder_id = credentials["folder_id"]
     drive = get_drive_client(credentials)
 
+    failed = await load_failed(user_id, session)
+    for file_id, cloudinary_url in failed.items():
+        try:
+            await publish_to_instagram(
+                cloudinary_url,
+                user_id=credentials["instagram_user_id"],
+                token=credentials["instagram_access_token"],
+                caption="",
+            )
+            await delete_failed(user_id, file_id, session)
+            print(f"retried and published {file_id} to instagram")
+        except Exception as e:
+            print(f"retry failed for {file_id}: {e}")
+
     results = drive.files().list(
         q=f"'{folder_id}' in parents and mimeType contains 'image/' and trashed =false",
         fields="files(id, name, mimeType)"
@@ -160,10 +174,12 @@ async def check_drive(credentials: dict, session):
             print(f"cloudinary upload failed for {file['name']}: {e}")
             continue
 
-        ig_success = False
+        await save_processed(user_id, file["id"], session)
+        print(f"saved {file['name']} to processed")
+
         try:
             caption = file.get("description", "")
-            ig_success = await publish_to_instagram(
+            await publish_to_instagram(
                 url,
                 user_id=credentials["instagram_user_id"],
                 token=credentials["instagram_access_token"],
@@ -179,10 +195,6 @@ async def check_drive(credentials: dict, session):
             print(f"deleted temp file: {path}")
         except Exception as e:
             print(f"failed to deleted temp file: {path}-> {e}")
-
-        if ig_success:
-            await save_processed(user_id, file["id"], session)
-            print(f"saved {file['name']} to processed")
 
 
 async def poll_all_users():

@@ -1,4 +1,5 @@
 import os
+import re
 import time
 import uuid
 
@@ -102,11 +103,15 @@ class GDriveSettings(BaseModel):
 
 @router.put("/settings/gdrive")
 async def set_gdrive_folder(body: GDriveSettings, current_user: User = Depends(get_current_user)):
+    folder_id = body.folder_id.strip()
+    match = re.search(r"/folders/([a-zA-Z0-9_-]+)", folder_id)
+    if match:
+        folder_id = match.group(1)
     async with AsyncSessionLocal() as session:
         user = await session.get(User, current_user.id)
-        user.gdrive_folder_id = body.folder_id
+        user.gdrive_folder_id = folder_id
         await session.commit()
-    return {"gdrive_folder_id": body.folder_id}
+    return {"gdrive_folder_id": folder_id}
 
 
 @router.post("/settings/gdrive/connect")
