@@ -19,8 +19,10 @@ async def publish_to_instagram(image_url: str, user_id, token, caption: str = ""
             }
         )
         if r.is_error:
-            raise Exception(f"Instagram container error: {r.json()}")
-        creation_id = r.json()["id"]
+            raise Exception(f"container creation failed [{r.status_code}]: {r.text}")
+        creation_id = r.json().get("id")
+        if not creation_id:
+            raise Exception(f"no container id in response: {r.text}")
 
         # Step 2 — wait for FINISHED
         for _ in range(10):
@@ -35,11 +37,10 @@ async def publish_to_instagram(image_url: str, user_id, token, caption: str = ""
             if status == "FINISHED":
                 break
             if status == "ERROR":
-                raise Exception(f"Instagram container failed: {s.json()}")
-            if status != "FINISHED":
-                await asyncio.sleep(3)
+                raise Exception(f"container status ERROR: {s.text}")
+            await asyncio.sleep(3)
         else:
-            raise Exception("Instagram container timed out")
+            raise Exception(f"container timed out after 10 polls, last status: {status}")
 
         # Step 3 — publish
         p = await client.post(
@@ -50,8 +51,7 @@ async def publish_to_instagram(image_url: str, user_id, token, caption: str = ""
             }
         )
         if p.is_error:
-            raise Exception(f"Instagram publish error: {p.json()}")
-        
-        
+            raise Exception(f"media_publish failed [{p.status_code}]: {p.text}")
+
     print(f"posted on the gram: {image_url}")
     return True
