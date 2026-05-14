@@ -118,8 +118,7 @@ export default function Dashboard() {
             <p className="text-xs font-semibold uppercase tracking-widest text-[#8e91a0]">step 2</p>
             <h2 className="text-2xl font-medium text-[#1c1c1e]">Pick your Drive folder</h2>
             <p className="text-sm text-[#555a6a] leading-relaxed">
-              Open the folder in Google Drive, copy the ID from the URL
-              (<span className="font-mono text-xs">drive.google.com/drive/folders/<strong>folder-id-here</strong></span>), and paste it below.
+              Copy your folder link and paste it below
             </p>
             <input
               type="text"

@@ -1,6 +1,6 @@
 import uuid
 
-from sqlalchemy import select
+from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession        
 
 from app.db.models import FailedFile, ProcessedFile
@@ -21,14 +21,15 @@ async def load_failed(user_id:uuid.UUID, session:AsyncSession):
 
 
 async def save_failed(user_id:uuid.UUID, file_id:str, cloudinary_url:str, session:AsyncSession):
-    session.add(FailedFile(user_id = user_id, gdrive_file_id = file_id, cloudinary_url = cloudinary_url))
-    await session.commit()
-
-async def delete_failed(user_id: uuid.UUID, file_id: str, session: AsyncSession):
-    result = await session.execute(
+    existing = await session.execute(
         select(FailedFile).where(FailedFile.user_id == user_id, FailedFile.gdrive_file_id == file_id)
     )
-    row = result.scalar_one_or_none()
-    if row:
-        await session.delete(row)
+    if existing.scalar_one_or_none() is None:
+        session.add(FailedFile(user_id=user_id, gdrive_file_id=file_id, cloudinary_url=cloudinary_url))
         await session.commit()
+
+async def delete_failed(user_id: uuid.UUID, file_id: str, session: AsyncSession):
+    await session.execute(
+        delete(FailedFile).where(FailedFile.user_id == user_id, FailedFile.gdrive_file_id == file_id)
+    )
+    await session.commit()
