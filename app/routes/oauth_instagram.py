@@ -25,7 +25,7 @@ async def instagram_auth():
         "https://www.facebook.com/v19.0/dialog/oauth"
         f"?client_id={META_APP_ID}"
         f"&redirect_uri={META_REDIRECT_URI}"
-        "&scope=instagram_basic,pages_show_list,pages_read_engagement,instagram_content_publish"
+        "&scope=instagram_basic,pages_show_list,pages_read_engagement,instagram_content_publish,business_management"
         "&response_type=code"
         "&display=page"
         f"&state={state}"
