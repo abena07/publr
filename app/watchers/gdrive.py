@@ -15,9 +15,12 @@ from sqlalchemy import select
 from app.scheduler import scheduler
 from app.db.base import AsyncSessionLocal
 from app.db.models import User
-from app.publishers.cloudinary import upload_image, make_instagram_url
-from app.publishers.instagram import publish_to_instagram
-from app.utils.state import load_processed, save_processed, load_failed, save_failed, delete_failed
+from app.publishers.cloudinary import upload_image, make_instagram_url, delete_image
+from app.publishers.instagram import publish_to_instagram, delete_from_instagram
+from app.utils.state import (
+    load_processed, save_processed, load_failed, save_failed, delete_failed,
+    load_processed_records, delete_processed, set_instagram_media_id, get_failed_record,
+)
 from app.utils.encryption import decrypt
 
 register_heif_opener()
@@ -125,14 +128,51 @@ async def check_drive(credentials: dict, session):
         except Exception as e:
             print(f"retry failed for {file_id}: {e}")
 
-    results = drive.files().list(
-        q=f"'{folder_id}' in parents and mimeType contains 'image/' and trashed =false",
-        fields="files(id, name, mimeType)"
-    ).execute()
+    files = []
+    page_token = None
+    while True:
+        kwargs = {
+            "q": f"'{folder_id}' in parents and mimeType contains 'image/' and trashed=false",
+            "fields": "nextPageToken, files(id, name, mimeType)",
+        }
+        if page_token:
+            kwargs["pageToken"] = page_token
+        results = drive.files().list(**kwargs).execute()
+        files.extend(results.get("files", []))
+        page_token = results.get("nextPageToken")
+        if not page_token:
+            break
 
-    files = results.get("files", [])
     print(f"found {len(files)} image(s) in folder")
-    processed = await load_processed(user_id, session)
+
+    processed_records = await load_processed_records(user_id, session)
+    processed = set(processed_records.keys())
+    drive_file_ids = {f["id"] for f in files}
+
+    for file_id in processed - drive_file_ids:
+        record = processed_records[file_id]
+        if record.instagram_media_id and credentials.get("instagram_access_token"):
+            try:
+                await delete_from_instagram(record.instagram_media_id, credentials["instagram_access_token"])
+                print(f"deleted {file_id} from instagram")
+            except Exception as e:
+                print(f"instagram delete failed for {file_id}: {e}")
+        if record.cloudinary_public_id:
+            try:
+                delete_image(record.cloudinary_public_id, credentials.get("cloudinary_creds"))
+                print(f"deleted {file_id} from cloudinary")
+            except Exception as e:
+                print(f"cloudinary delete failed for {file_id}: {e}")
+        await delete_processed(user_id, file_id, session)
+        failed_record = await get_failed_record(user_id, file_id, session)
+        if failed_record:
+            if failed_record.cloudinary_public_id:
+                try:
+                    delete_image(failed_record.cloudinary_public_id, credentials.get("cloudinary_creds"))
+                    print(f"deleted failed file {file_id} from cloudinary")
+                except Exception as e:
+                    print(f"cloudinary delete (failed file) failed for {file_id}: {e}")
+            await delete_failed(user_id, file_id, session)
 
     new_files = [f for f in files if f["id"] not in processed]
 
@@ -154,7 +194,9 @@ async def check_drive(credentials: dict, session):
             continue
 
         try:
-            original_url = upload_image(path, user_id=user_id, credentials=credentials.get("cloudinary_creds"))
+            upload_result = upload_image(path, user_id=user_id, credentials=credentials.get("cloudinary_creds"))
+            original_url = upload_result["secure_url"]
+            cloudinary_public_id = upload_result["public_id"]
             print(f"uploaded to cloudinary: {original_url}")
         except Exception as e:
             print(f"cloudinary upload failed for {file['name']}: {e}")
@@ -162,21 +204,22 @@ async def check_drive(credentials: dict, session):
 
         url = make_instagram_url(original_url, target_w, target_h)
 
-        await save_processed(user_id, file["id"], session)
+        await save_processed(user_id, file["id"], session, cloudinary_public_id=cloudinary_public_id)
         print(f"saved {file['name']} to processed")
 
         try:
             caption = file.get("description", "")
-            await publish_to_instagram(
+            media_id = await publish_to_instagram(
                 url,
                 user_id=credentials["instagram_user_id"],
                 token=credentials["instagram_access_token"],
                 caption=caption,
             )
+            await set_instagram_media_id(user_id, file["id"], media_id, session)
             print(f"published to the gram successfully! : {url}")
         except Exception as e:
             print(f"publishing to instagram failed for {file['name']}: {e}")
-            await save_failed(user_id, file["id"], url, session)
+            await save_failed(user_id, file["id"], url, session, cloudinary_public_id=cloudinary_public_id)
 
         try:
             os.remove(path)

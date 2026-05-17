@@ -42,6 +42,8 @@ class ProcessedFile(Base):
     id : Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
     user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id"))
     gdrive_file_id: Mapped[str] = mapped_column()
+    cloudinary_public_id: Mapped[Optional[str]] = mapped_column(default=None)
+    instagram_media_id: Mapped[Optional[str]] = mapped_column(default=None)
     processed_at: Mapped[datetime] = mapped_column(server_default=func.now())
 
 
@@ -53,6 +55,7 @@ class FailedFile(Base):
     gdrive_file_id: Mapped[str] = mapped_column()
     failed_at: Mapped[datetime] = mapped_column(server_default=func.now())
     cloudinary_url: Mapped[str] = mapped_column()
+    cloudinary_public_id: Mapped[Optional[str]] = mapped_column(default=None)
 
 
 class WaitlistEntry(Base):

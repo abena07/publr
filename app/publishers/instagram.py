@@ -4,7 +4,7 @@ import httpx
 BASE = "https://graph.facebook.com/v21.0"
 
 
-async def publish_to_instagram(image_url: str, user_id, token, caption: str = "") -> bool:
+async def publish_to_instagram(image_url: str, user_id, token, caption: str = "") -> str:
     if not user_id or not token:
         raise ValueError("No Instagram account connected. Connect your Instagram before publishing.")
 
@@ -52,6 +52,17 @@ async def publish_to_instagram(image_url: str, user_id, token, caption: str = ""
         )
         if p.is_error:
             raise Exception(f"media_publish failed [{p.status_code}]: {p.text}")
+        media_id = p.json().get("id")
 
     print(f"posted on the gram: {image_url}")
-    return True
+    return media_id
+
+
+async def delete_from_instagram(media_id: str, token: str):
+    async with httpx.AsyncClient() as client:
+        r = await client.delete(
+            f"{BASE}/{media_id}",
+            params={"access_token": token},
+        )
+        if r.is_error:
+            raise Exception(f"instagram delete failed [{r.status_code}]: {r.text}")
