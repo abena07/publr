@@ -37,7 +37,8 @@ def _fetch_photos(user: User) -> list[str]:
         prefix = f"publr/{user.id}"
 
     result = cloudinary.api.resources(type="upload", prefix=prefix, max_results=100)
-    return [make_display_url(r["secure_url"]) for r in result["resources"]]
+    resources = sorted(result["resources"], key=lambda r: r["created_at"], reverse=True)
+    return [make_display_url(r["secure_url"]) for r in resources]
 
 
 @router.get("/api/photos/{user_id}")
