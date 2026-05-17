@@ -48,9 +48,11 @@ async def delete_processed(user_id: uuid.UUID, file_id: str, session: AsyncSessi
     )
     await session.commit()
 
-async def load_failed(user_id:uuid.UUID, session:AsyncSession):
-    result = await session.execute(select(FailedFile).where(FailedFile.user_id == user_id))
-    return{row.gdrive_file_id: row.cloudinary_url for row in result.scalars().all()}
+async def load_failed(user_id: uuid.UUID, session: AsyncSession):
+    result = await session.execute(
+        select(FailedFile).where(FailedFile.user_id == user_id).order_by(FailedFile.failed_at)
+    )
+    return {row.gdrive_file_id: row.cloudinary_url for row in result.scalars().all()}
 
 
 async def save_failed(
