@@ -8,7 +8,7 @@ import httpx
 from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseDownload
-from PIL import Image
+from PIL import Image, ImageOps
 from pillow_heif import register_heif_opener
 from sqlalchemy import select
 
@@ -25,7 +25,6 @@ register_heif_opener()
 
 DOWNLOAD_DIR = "downloads"
 os.makedirs(DOWNLOAD_DIR, exist_ok=True)
-MAX_SIZE = 1080
 
 GOOGLE_CLIENT_ID = os.environ["GOOGLE_CLIENT_ID"]
 GOOGLE_CLIENT_SECRET = os.environ["GOOGLE_CLIENT_SECRET"]
@@ -93,30 +92,25 @@ async def get_fresh_credentials(user_id: uuid.UUID) -> Optional[dict]:
         }
 
 
-def pad_to_valid_ratio(img):
-    width, height = img.size
-    ratio = width / height
-    if ratio < 0.8:
-        # too tall — pad width to match 4:5
-        new_width = int(height * 0.8)
-        padded = Image.new("RGB", (new_width, height), (0, 0, 0))
-        padded.paste(img, ((new_width - width) // 2, 0))
-        return padded
-    elif ratio > 1.91:
-        # too wide — pad height to match 1.91:1
-        new_height = int(width / 1.91)
-        padded = Image.new("RGB", (width, new_height), (0, 0, 0))
-        padded.paste(img, (0, (new_height - height) // 2))
-        return padded
-    return img
+INSTAGRAM_FORMATS = [
+    (1080, 1350),  # portrait  4:5
+    (1080, 1080),  # square    1:1
+    (1080,  566),  # landscape 1.91:1
+]
+
+
+def fit_to_instagram_format(img: Image.Image) -> Image.Image:
+    w, h = img.size
+    ratio = w / h
+    target = min(INSTAGRAM_FORMATS, key=lambda t: abs((t[0] / t[1]) - ratio))
+    return ImageOps.fit(img, target, Image.LANCZOS)
 
 
 def resize_image(path):
     img = Image.open(path).convert("RGB")
-    img.thumbnail((MAX_SIZE, MAX_SIZE), Image.LANCZOS)
-    img = pad_to_valid_ratio(img)
+    img = fit_to_instagram_format(img)
     img.save(path, "JPEG", quality=90)
-    print(f"Resized image to max {MAX_SIZE}px : {path}")
+    print(f"resized image to instagram format: {path}")
     return path
 
 
