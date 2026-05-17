@@ -8,14 +8,14 @@ import httpx
 from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseDownload
-from PIL import Image, ImageOps
+from PIL import Image
 from pillow_heif import register_heif_opener
 from sqlalchemy import select
 
 from app.scheduler import scheduler
 from app.db.base import AsyncSessionLocal
 from app.db.models import User
-from app.publishers.cloudinary import upload_image
+from app.publishers.cloudinary import upload_image, make_instagram_url
 from app.publishers.instagram import publish_to_instagram
 from app.utils.state import load_processed, save_processed, load_failed, save_failed, delete_failed
 from app.utils.encryption import decrypt
@@ -99,19 +99,11 @@ INSTAGRAM_FORMATS = [
 ]
 
 
-def fit_to_instagram_format(img: Image.Image) -> Image.Image:
-    w, h = img.size
+def get_instagram_target(path: str) -> tuple:
+    with Image.open(path) as img:
+        w, h = img.size
     ratio = w / h
-    target = min(INSTAGRAM_FORMATS, key=lambda t: abs((t[0] / t[1]) - ratio))
-    return ImageOps.fit(img, target, Image.LANCZOS)
-
-
-def resize_image(path):
-    img = Image.open(path).convert("RGB")
-    img = fit_to_instagram_format(img)
-    img.save(path, "JPEG", quality=90)
-    print(f"resized image to instagram format: {path}")
-    return path
+    return min(INSTAGRAM_FORMATS, key=lambda t: abs((t[0] / t[1]) - ratio))
 
 
 async def check_drive(credentials: dict, session):
@@ -156,17 +148,19 @@ async def check_drive(credentials: dict, session):
                 _, done = downloader.next_chunk()
 
         try:
-            resize_image(path)
+            target_w, target_h = get_instagram_target(path)
         except Exception as e:
-            print(f"resize failed for {file['name']}: {e}")
+            print(f"failed to determine instagram format for {file['name']}: {e}")
             continue
 
         try:
-            url = upload_image(path, user_id=user_id, credentials=credentials.get("cloudinary_creds"))
-            print(f"uploaded to cloudinary: {url}")
+            original_url = upload_image(path, user_id=user_id, credentials=credentials.get("cloudinary_creds"))
+            print(f"uploaded to cloudinary: {original_url}")
         except Exception as e:
             print(f"cloudinary upload failed for {file['name']}: {e}")
             continue
+
+        url = make_instagram_url(original_url, target_w, target_h)
 
         await save_processed(user_id, file["id"], session)
         print(f"saved {file['name']} to processed")
