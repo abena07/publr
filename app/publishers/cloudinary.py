@@ -48,3 +48,7 @@ def delete_image(public_id: str, credentials: Optional[dict] = None):
 
 def make_instagram_url(original_url: str, w: int, h: int) -> str:
     return original_url.replace("/upload/", f"/upload/c_fill,w_{w},h_{h}/")
+
+
+def make_display_url(original_url: str) -> str:
+    return original_url.replace("/upload/", "/upload/f_auto,q_auto/")

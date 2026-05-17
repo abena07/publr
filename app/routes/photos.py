@@ -9,6 +9,7 @@ from sqlalchemy import select
 from app.auth.jwt import get_current_user
 from app.db.base import AsyncSessionLocal
 from app.db.models import User
+from app.publishers.cloudinary import make_display_url
 from app.utils.encryption import decrypt
 
 router = APIRouter()
@@ -36,7 +37,7 @@ def _fetch_photos(user: User) -> list[str]:
         prefix = f"publr/{user.id}"
 
     result = cloudinary.api.resources(type="upload", prefix=prefix, max_results=100)
-    return [r["secure_url"] for r in result["resources"]]
+    return [make_display_url(r["secure_url"]) for r in result["resources"]]
 
 
 @router.get("/api/photos/{user_id}")
