@@ -28,3 +28,7 @@ def upload_image(
 
     result = cloudinary.uploader.upload(file_path, folder=folder)
     return result["secure_url"]
+
+
+def make_instagram_url(original_url: str, w: int, h: int) -> str:
+    return original_url.replace("/upload/", f"/upload/c_fill,w_{w},h_{h}/")
