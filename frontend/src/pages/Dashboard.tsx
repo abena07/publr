@@ -94,8 +94,9 @@ export default function Dashboard() {
       </nav>
 
       <main className="flex flex-1 flex-col gap-12 py-12">
-        {/* Step 1: Connect GDrive */}
-        {!me.gdrive_connected && !me.gdrive_folder_id && (
+        {/* Step 1: Connect GDrive — also the recovery path if a watcher reset
+            gdrive_connected to false while a folder_id is still set. */}
+        {!me.gdrive_connected && (
           <section className="flex flex-col gap-4 max-w-md">
             <p className="text-xs font-semibold uppercase tracking-widest text-[#8e91a0]">step 1</p>
             <h2 className="text-2xl font-medium text-[#1c1c1e]">Connect Google Drive</h2>

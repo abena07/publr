@@ -68,10 +68,18 @@ async def get_fresh_credentials(user_id: uuid.UUID) -> Optional[dict]:
                 })
                 data = resp.json()
             if "error" in data:
-                print(f"token refresh failed for user {user_id}: {data}")
-                scheduler.pause_job(f"gdrive_watcher_{user_id}")
-                user.gdrive_connected = False
-                await session.commit()
+                # Only a revoked/expired refresh token (invalid_grant) is a
+                # permanent failure that genuinely requires the user to re-auth.
+                # Anything else (network blip, Google 5xx, Railway/provider
+                # downtime) is transient — leave gdrive_connected untouched and
+                # let the next poll retry, so an outage can't silently disconnect.
+                if data.get("error") == "invalid_grant":
+                    print(f"refresh token revoked for user {user_id}: {data}")
+                    scheduler.pause_job(f"gdrive_watcher_{user_id}")
+                    user.gdrive_connected = False
+                    await session.commit()
+                else:
+                    print(f"transient token refresh error for user {user_id}, will retry: {data}")
                 return None
             user.google_access_token = data["access_token"]
             user.google_token_expires_at = int(time.time()) + data.get("expires_in", 3600)

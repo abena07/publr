@@ -91,7 +91,17 @@ async def gdrive_callback(code: str, state: str):
         if data.get("refresh_token"):
             user.google_refresh_token = data["refresh_token"]
         user.google_token_expires_at = int(time.time()) + data.get("expires_in", 3600)
+        user.gdrive_connected = True
         await session.commit()
+
+    # Completing OAuth is enough to be connected — don't depend on the frontend
+    # to POST /settings/gdrive/connect afterwards. Resume a paused watcher if one
+    # already exists (e.g. after a prior disconnect), otherwise start a new one.
+    job_id = f"gdrive_watcher_{user_id}"
+    if scheduler.get_job(job_id):
+        scheduler.resume_job(job_id)
+    else:
+        start_watcher(user_id)
 
     frontend_url = os.environ.get("FRONTEND_URL", "http://localhost:5173")
     return RedirectResponse(f"{frontend_url}/dashboard?gdrive=connected")
@@ -120,7 +130,10 @@ async def connect_drive(current_user: User = Depends(get_current_user)):
         user = await session.get(User, current_user.id)
         user.gdrive_connected = True
         await session.commit()
-    if not scheduler.get_job(f"gdrive_watcher_{current_user.id}"):
+    job_id = f"gdrive_watcher_{current_user.id}"
+    if scheduler.get_job(job_id):
+        scheduler.resume_job(job_id)
+    else:
         start_watcher(current_user.id)
     return {"status": "connected"}
 
