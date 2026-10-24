@@ -8,7 +8,7 @@ async def publish_to_instagram(image_url: str, user_id, token, caption: str = ""
     if not user_id or not token:
         raise ValueError("No Instagram account connected. Connect your Instagram before publishing.")
 
-    async with httpx.AsyncClient() as client:
+    async with httpx.AsyncClient(timeout=60) as client:
         # Step 1 — create container
         r = await client.post(
             f"{BASE}/{user_id}/media",
@@ -59,7 +59,7 @@ async def publish_to_instagram(image_url: str, user_id, token, caption: str = ""
 
 
 async def delete_from_instagram(media_id: str, token: str):
-    async with httpx.AsyncClient() as client:
+    async with httpx.AsyncClient(timeout=60) as client:
         r = await client.delete(
             f"{BASE}/{media_id}",
             params={"access_token": token},

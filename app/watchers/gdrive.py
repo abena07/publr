@@ -134,7 +134,7 @@ async def check_drive(credentials: dict, session):
             await delete_failed(user_id, file_id, session)
             print(f"retried and published {file_id} to instagram")
         except Exception as e:
-            print(f"retry failed for {file_id}: {e}")
+            print(f"retry failed for {file_id}: {e!r}")
 
     files = []
     page_token = None
@@ -164,13 +164,13 @@ async def check_drive(credentials: dict, session):
                 await delete_from_instagram(record.instagram_media_id, credentials["instagram_access_token"])
                 print(f"deleted {file_id} from instagram")
             except Exception as e:
-                print(f"instagram delete failed for {file_id}: {e}")
+                print(f"instagram delete failed for {file_id}: {e!r}")
         if record.cloudinary_public_id:
             try:
                 delete_image(record.cloudinary_public_id, credentials.get("cloudinary_creds"))
                 print(f"deleted {file_id} from cloudinary")
             except Exception as e:
-                print(f"cloudinary delete failed for {file_id}: {e}")
+                print(f"cloudinary delete failed for {file_id}: {e!r}")
         await delete_processed(user_id, file_id, session)
         failed_record = await get_failed_record(user_id, file_id, session)
         if failed_record:
@@ -179,7 +179,7 @@ async def check_drive(credentials: dict, session):
                     delete_image(failed_record.cloudinary_public_id, credentials.get("cloudinary_creds"))
                     print(f"deleted failed file {file_id} from cloudinary")
                 except Exception as e:
-                    print(f"cloudinary delete (failed file) failed for {file_id}: {e}")
+                    print(f"cloudinary delete (failed file) failed for {file_id}: {e!r}")
             await delete_failed(user_id, file_id, session)
 
     new_files = [f for f in files if f["id"] not in processed]
@@ -207,7 +207,7 @@ async def check_drive(credentials: dict, session):
             cloudinary_public_id = upload_result["public_id"]
             print(f"uploaded to cloudinary: {original_url}")
         except Exception as e:
-            print(f"cloudinary upload failed for {file['name']}: {e}")
+            print(f"cloudinary upload failed for {file['name']}: {e!r}")
             continue
 
         url = make_instagram_url(original_url, target_w, target_h)
@@ -226,7 +226,7 @@ async def check_drive(credentials: dict, session):
             await set_instagram_media_id(user_id, file["id"], media_id, session)
             print(f"published to the gram successfully! : {url}")
         except Exception as e:
-            print(f"publishing to instagram failed for {file['name']}: {e}")
+            print(f"publishing to instagram failed for {file['name']}: {e!r}")
             await save_failed(user_id, file["id"], url, session, cloudinary_public_id=cloudinary_public_id)
 
         try:
