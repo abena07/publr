@@ -36,7 +36,7 @@ async def instagram_auth():
 
 @router.get("/auth/instagram/callback")
 async def instagram_callback(code: str = None, error: str = None, state: str = None):
-    print(f"DEBUG callback: code={code}, error={error}, state={state}")
+    print(f"DEBUG callback: has_code={code is not None}, error={error}")
     if error:
         raise HTTPException(status_code=400, detail="Instagram login was cancelled or denied")
     if not state or not await consume_login_nonce(state):
@@ -51,7 +51,7 @@ async def instagram_callback(code: str = None, error: str = None, state: str = N
             "redirect_uri": META_REDIRECT_URI,
             "code": code,
         })
-        print(f"DEBUG short-lived token exchange: {resp.json()}")
+        print(f"DEBUG short-lived token exchange: ok={'access_token' in resp.json()}, error={resp.json().get('error')}")
         short_lived_token = resp.json()["access_token"]
 
         # Step 2 — exchange short-lived for long-lived token
@@ -61,7 +61,7 @@ async def instagram_callback(code: str = None, error: str = None, state: str = N
             "client_secret": META_APP_SECRET,
             "fb_exchange_token": short_lived_token,
         })
-        print(f"DEBUG long-lived token exchange: {resp.json()}")
+        print(f"DEBUG long-lived token exchange: ok={'access_token' in resp.json()}, error={resp.json().get('error')}")
         long_lived_token = resp.json()["access_token"]
 
         # Debug — check what permissions were actually granted
@@ -73,7 +73,7 @@ async def instagram_callback(code: str = None, error: str = None, state: str = N
             "fields": "id,name,access_token,instagram_business_account",
             "access_token": long_lived_token,
         })
-        print(f"DEBUG /me/accounts: {resp.json()}")
+        print(f"DEBUG /me/accounts: {[(p.get('name'), p.get('id'), 'instagram_business_account' in p) for p in resp.json().get('data', [])]}")
         pages = resp.json().get("data", [])
 
         if not pages:
