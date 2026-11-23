@@ -45,7 +45,7 @@ export default function Setup() {
         <div className="flex flex-col gap-3">
           <h1 className="text-3xl font-medium text-[#1c1c1e]">before you start</h1>
           <p className="text-sm text-[#555a6a] leading-relaxed">
-            publr publishes to instagram through meta's api, which requires a professional account linked to a facebook page. takes about 5 minutes to set up if you haven't already.
+            only publishing to your website? you can skip this and sign in with google. publr publishes to instagram through meta's api, which requires a professional account linked to a facebook page. takes about 5 minutes to set up if you haven't already.
           </p>
         </div>
 

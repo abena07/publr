@@ -11,6 +11,7 @@ from app.scheduler import scheduler
 from app.watchers.gdrive import start_watcher
 from app.routes.photos import router as photos_router
 from app.routes.oauth_instagram import router as instagram_router
+from app.routes.oauth_google import router as google_router
 from app.routes.oauth_gdrive import router as gdrive_router
 from app.routes.legal import router as legal_router
 from app.routes.cloudinary_settings import router as cloudinary_router
@@ -58,6 +59,7 @@ def health():
 
 app.include_router(photos_router)
 app.include_router(instagram_router)
+app.include_router(google_router)
 app.include_router(gdrive_router)
 app.include_router(legal_router)
 app.include_router(cloudinary_router)
