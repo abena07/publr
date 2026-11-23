@@ -68,6 +68,7 @@ each user connects their own Google Drive and Instagram. credentials are stored 
 ```
 
 **OAuth flows:**
+- Sign in with Google (website-only mode): openid + email only. no Instagram needed — new Drive photos go to Cloudinary and `/api/photos/{user_id}`, and every Instagram step is skipped
 - Google Drive: OAuth 2.0 — users connect their own Drive via "Connect Google Drive"
 - Instagram: Meta OAuth 2.0 — users connect via "Connect Instagram" (requires a Facebook Page linked to an Instagram Business/Creator account)
 - Cloudinary: shared account, uploads isolated to `publr/{user_id}/` folder
@@ -82,7 +83,7 @@ each user connects their own Google Drive and Instagram. credentials are stored 
 
 **Meta app:** create an app at developers.facebook.com, add the Instagram product, and set the OAuth redirect URI to `{your_domain}/auth/instagram/callback`.
 
-**Google app:** create an OAuth 2.0 client at console.cloud.google.com with the Google Drive API enabled. set the redirect URI to `{your_domain}/auth/gdrive/callback`.
+**Google app:** create an OAuth 2.0 client at console.cloud.google.com with the Google Drive API enabled. set the redirect URIs to `{your_domain}/auth/gdrive/callback` and `{your_domain}/auth/google/callback` (sign-in).
 
 **Cloudinary:** create a free account at cloudinary.com. photos are uploaded under a `publr/{user_id}/` folder so each user's images stay separate.
 
@@ -101,6 +102,7 @@ copy `.env.example` to `.env` and fill in your keys:
 | `GOOGLE_CLIENT_ID` | Google OAuth client ID |
 | `GOOGLE_CLIENT_SECRET` | Google OAuth client secret |
 | `GOOGLE_REDIRECT_URI` | full URL to `/auth/gdrive/callback` |
+| `GOOGLE_LOGIN_REDIRECT_URI` | full URL to `/auth/google/callback` (sign in with Google) |
 | `CLOUDINARY_CLOUD_NAME` | Cloudinary cloud name |
 | `CLOUDINARY_API_KEY` | Cloudinary API key |
 | `CLOUDINARY_API_SECRET` | Cloudinary API secret |

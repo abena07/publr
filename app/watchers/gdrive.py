@@ -43,13 +43,8 @@ async def get_fresh_credentials(user_id: uuid.UUID) -> Optional[dict]:
     """Returns fresh credentials for a user, refreshing the access token if expired."""
     async with AsyncSessionLocal() as session:
         user = await session.get(User, user_id)
-        if (
-            not user
-            or not user.google_access_token
-            or not user.gdrive_folder_id
-            or not user.instagram_user_id
-            or not user.instagram_access_token
-        ):
+        # instagram is optional: website-only users sync drive → cloudinary without it
+        if not user or not user.google_access_token or not user.gdrive_folder_id:
             return None
 
         if user.google_token_expires_at and time.time() > user.google_token_expires_at - 60:
@@ -99,6 +94,7 @@ async def get_fresh_credentials(user_id: uuid.UUID) -> Optional[dict]:
             "folder_id": user.gdrive_folder_id,
             "instagram_user_id": user.instagram_user_id,
             "instagram_access_token": user.instagram_access_token,
+            "instagram_connected": bool(user.instagram_user_id and user.instagram_access_token),
             "cloudinary_creds": cloudinary_creds,
         }
 
@@ -121,8 +117,9 @@ async def check_drive(credentials: dict, session):
     user_id = credentials["user_id"]
     folder_id = credentials["folder_id"]
     drive = get_drive_client(credentials)
+    instagram_connected = credentials.get("instagram_connected", False)
 
-    failed = await load_failed(user_id, session)
+    failed = await load_failed(user_id, session) if instagram_connected else {}
     for file_id, cloudinary_url in failed.items():
         try:
             await publish_to_instagram(
@@ -195,11 +192,12 @@ async def check_drive(credentials: dict, session):
             while not done:
                 _, done = downloader.next_chunk()
 
-        try:
-            target_w, target_h = get_instagram_target(path)
-        except Exception as e:
-            print(f"failed to determine instagram format for {file['name']}: {e}")
-            continue
+        if instagram_connected:
+            try:
+                target_w, target_h = get_instagram_target(path)
+            except Exception as e:
+                print(f"failed to determine instagram format for {file['name']}: {e}")
+                continue
 
         try:
             upload_result = upload_image(path, user_id=user_id, credentials=credentials.get("cloudinary_creds"))
@@ -210,24 +208,25 @@ async def check_drive(credentials: dict, session):
             print(f"cloudinary upload failed for {file['name']}: {e!r}")
             continue
 
-        url = make_instagram_url(original_url, target_w, target_h)
-
         await save_processed(user_id, file["id"], session, cloudinary_public_id=cloudinary_public_id)
         print(f"saved {file['name']} to processed")
 
-        try:
-            caption = file.get("description", "")
-            media_id = await publish_to_instagram(
-                url,
-                user_id=credentials["instagram_user_id"],
-                token=credentials["instagram_access_token"],
-                caption=caption,
-            )
-            await set_instagram_media_id(user_id, file["id"], media_id, session)
-            print(f"published to the gram successfully! : {url}")
-        except Exception as e:
-            print(f"publishing to instagram failed for {file['name']}: {e!r}")
-            await save_failed(user_id, file["id"], url, session, cloudinary_public_id=cloudinary_public_id)
+        # website-only users stop here: the photo is on cloudinary and served by /api/photos
+        if instagram_connected:
+            url = make_instagram_url(original_url, target_w, target_h)
+            try:
+                caption = file.get("description", "")
+                media_id = await publish_to_instagram(
+                    url,
+                    user_id=credentials["instagram_user_id"],
+                    token=credentials["instagram_access_token"],
+                    caption=caption,
+                )
+                await set_instagram_media_id(user_id, file["id"], media_id, session)
+                print(f"published to the gram successfully! : {url}")
+            except Exception as e:
+                print(f"publishing to instagram failed for {file['name']}: {e!r}")
+                await save_failed(user_id, file["id"], url, session, cloudinary_public_id=cloudinary_public_id)
 
         try:
             os.remove(path)
