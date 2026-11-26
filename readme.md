@@ -142,3 +142,7 @@ uvicorn app.main:app --reload --port 8000
 ## contributing
 
 prs welcome. open an issue and attach a pr if you can, or we can discuss and take it from there.
+
+## license
+
+[mit](LICENSE)
